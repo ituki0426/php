@@ -1,20 +1,41 @@
-<?php declare(strict_types=1); ?>
-<body>
-    <?php
-    function escape($val)
-    {
-        return htmlspecialchars($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    }
-    if(!isset($_POST['operation'])){
-        echo 'この画面への直接アクセスは許可されません';
-        return;
-    }
-    ?>
-    <h2>お問い合わせを受け付けました。入力内容は以下の通りです</h2>
-<table border="1">
-   <tr>
-       <th>お問い合わせを受け付けました。入力内容は以下の通りです</th>
-       <td><?=escape($_POST['post-form'])?></td>
-   </tr>
-</table>
-</body>
+<?php
+require_once('config.php');
+//rezuire_onceは指定したファイルを読み込む
+//データベースへ接続、テーブルがない場合は作成
+try {
+  $pdo = new PDO(DSN, DB_USER, DB_PASS);
+  //PDOクラスとは
+  //データベースサーバーとのデータのやり取りで用いる
+  $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+  $pdo->exec("create table if not exists userDeta(
+      id int not null auto_increment primary key,
+      email varchar(255),
+      password varchar(255),
+      created timestamp not null default current_timestamp
+    )");
+} catch (Exception $e) {
+  echo $e->getMessage() . PHP_EOL;
+}
+//POSTのValidate。
+if (!$email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+  echo '入力された値が不正です。';
+  return false;
+}
+//filter_varは指定したフィルタでデータをフィルタリングぐする
+//第二引数にFILTER_VAIDATE_EMAILを渡すことで、そのメールアドレスの妥当性を確かめる
+//ドメイン名があるか、空白はないか、などである
+//パスワードの正規表現
+if (preg_match('/\A(?=.*?[a-z])(?=.*?\d)[a-z\d]{8,100}+\z/i', $_POST['password'])) {
+  $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+} else {
+  echo 'パスワードは半角英数字をそれぞれ1文字以上含んだ8文字以上で設定してください。';
+  return false;
+}
+//登録処理
+try {
+  $stmt = $pdo->prepare("insert into userDeta(email, password) value(?, ?)");
+  $stmt->execute([$email, $password]);
+  echo '登録完了';
+} catch (\Exception $e) {
+  echo '登録済みのメールアドレスです。';
+}
