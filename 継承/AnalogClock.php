@@ -6,5 +6,7 @@ class AnalogClock extends Clock{
         $minuteHand=90;
         $hourHand=157.5;
         return "長針: {$minuteHand}　短針:{$hourHand}";
+        //DOM要素を取得したい
+        
     }
 }
